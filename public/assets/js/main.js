@@ -7,14 +7,20 @@ const socket = io();
 
 socket.on('connect', () => {
 	console.log('Connected to server');
+	txtsysmsg.value+='Connected to server\n';
+	txtsysmsg.scrollTop = txtsysmsg.scrollHeight;
 });
 
 socket.on('handshake_ack', (data) => {
 	console.log('Handshake acknowledged:', data);
+	txtsysmsg.value+='Handshake acknowledged:' + data + '\n';
+	txtsysmsg.scrollTop = txtsysmsg.scrollHeight;
 });
 
 socket.on('secretmsg_ack', (data) => {
 	console.log('Message acknowledged:', data);
+	txtsysmsg.value+='Message acknowledged:' + data + '\n';
+	txtsysmsg.scrollTop = txtsysmsg.scrollHeight;
 });
 
 socket.on('file_received', (data) => {
@@ -38,6 +44,7 @@ const DOM = {
 	txtuserid: document.getElementById('txtuserid'),
 	btnSendMsg: document.getElementById('btnSendMsg'),
 	txtMsg: document.getElementById('txtMsg'),
+	txtsysmsg: document.getElementById('txtsysmsg'),
 };
 
 const CONFIG = {
