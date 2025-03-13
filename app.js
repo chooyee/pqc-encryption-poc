@@ -40,3 +40,12 @@ const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}`);
 });
+
+
+
+// (async () => {
+//     const MLKemEncryption = require("./factory/mlkem.js");
+//     const { publicKey, secretKey } = await MLKemEncryption.generateKeyPair();
+//     console.log("Public Key:", publicKey);
+//     console.log("Secret Key:", secretKey);
+// })();

@@ -1,6 +1,6 @@
 const fs = require("fs").promises;
 const path = require("path");
-const RSAEncryption = require("../factory/rsa");
+const MLKemEncryption = require("../factory/mlkem.js");
 const AESEncryption = require("../factory/aes");
 
 module.exports = (io) => {
@@ -9,62 +9,92 @@ module.exports = (io) => {
     io.on("connection", (socket) => {
         console.log("New client connected:", socket.id);
 
-        socket.on("handshake", (data) => {
+        socket.on("handshake", async (data) => {
             console.log(`Handshake received: ${data.senderName}, ${data.bonShared}`);
-            const filePath = `./certs/${data.senderName}/private.key`;
-            const rsa = new RSAEncryption({ privateKeyFile: filePath });
-            const bobSharedKey = rsa.decrypt(data.bonShared);
+            
+            const { publicKey, secretKey } = await MLKemEncryption.generateKeyPair();
+            console.log("Public Key:", publicKey);
+            console.log("Secret Key:", secretKey);
             const clientId = socket.id;
             clients.set(clientId, {
                 senderName: data.senderName,
-                key: bobSharedKey,
+                key: null,
                 chunks: [], // Initialize chunks array for file transfer
+                publicKey: publicKey,
+                secretKey: secretKey,
             });
-            console.log(bobSharedKey);
-            socket.emit("handshake_ack", { status: "success" });
+           
+            socket.emit("handshake_ack", { status: "success",publicKey: publicKey });
         });
 
-        socket.on("secretmsg", (data) => {
+        socket.on("secretmsg", async (data, callback) => {
             const clientId = socket.id;
             const clientData = clients.get(clientId);
             if (!clientData) {
-                socket.emit("error", { message: "secretmsg required" });
+                callback({status:"failed", message: `Client Id [${socket.id}] does not exists!` });
                 return;
             }
 
-            AESEncryption.decryptData(
-                data.secretMsg.encryptedData,
-                data.secretMsg.iv,
-                clientData.key
-            ).then((secretMsg) => {
+            try {
+                const secretMsg = await AESEncryption.decryptData(
+                    data.secretMsg.encryptedData,
+                    data.secretMsg.iv,
+                    clientData.key
+                );
                 console.log("secretMsg: " + secretMsg);
-                socket.emit("secretmsg_ack", { status: "success" });
-            });
+                callback({ status: "success" });
+            } catch (error) {
+                console.error("Decryption error:", error);
+                callback({ status: "error", message: "Failed to decrypt message" });
+            }
         });
 
-        socket.on("secretfile", (data) => {
+        socket.on("bobshared", (data, callback) => {
             const clientId = socket.id;
             const clientData = clients.get(clientId);
             if (!clientData) {
-                socket.emit("error", { message: "secretmsg required" });
+                callback({status:"failed", message: `Client Id [${socket.id}] does not exists!` });
+                return;
+            };
+
+            MLKemEncryption.decrypt(data.cipherText, clientData.secretKey).then((sharedSecret) => {
+                console.log("Shared Secret: " + sharedSecret);
+                clientData.key = sharedSecret;
+                callback({ status: "success" });
+            });
+            
+        });
+
+        socket.on("secretfile", async (data, callback) => {
+            const clientId = socket.id;
+            const clientData = clients.get(clientId);
+            if (!clientData) {
+                callback({status:"failed", message: `Client Id [${socket.id}] does not exists!` });
                 return;
             }
 
-            AESEncryption.decryptFile(
-                data.secretFile.encryptedData,
-                data.secretFile.iv,
-                clientData.key
-            ).then((secretFileArrayBuffer) => {
+            try {
+                const secretFileArrayBuffer = await AESEncryption.decryptFile(
+                    data.secretFile.encryptedData,
+                    data.secretFile.iv,
+                    clientData.key
+                );
+                
                 const ext = path.extname(data.secretFile.fileName);
                 const filename = `${data.secretFile.fileName}-${Date.now()}${ext}`;
-                fs.writeFile(
+                
+                await fs.writeFile(
                     `./uploads/${filename}`,
                     Buffer.from(secretFileArrayBuffer)
-                ).then(() => {
-                    console.log("File saved");
-                    socket.emit("secretmsg_ack", { status: "success" });
-                });
-            });
+                );
+                
+                console.log("File saved");
+                //socket.emit("file_received_ack", { status: "success", fileName: filename });
+                callback({status:"success", fileName: filename });
+            } catch (error) {
+                console.error("Error processing file:", error);
+                socket.emit("error", { message: "Failed to process file" });
+            }
         });
 
         socket.on("chunk", (data) => {

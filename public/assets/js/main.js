@@ -7,26 +7,21 @@ const socket = io();
 
 socket.on('connect', () => {
 	console.log('Connected to server');
-	txtsysmsg.value+='Connected to server\n';
-	txtsysmsg.scrollTop = txtsysmsg.scrollHeight;
+	utils.logSysMsg('Connected to server');
 });
 
-socket.on('handshake_ack', (data) => {
+socket.on('handshake_ack', async (data) => {
 	console.log('Handshake acknowledged:', data);
-	txtsysmsg.value+='Handshake acknowledged:' + data + '\n';
-	txtsysmsg.scrollTop = txtsysmsg.scrollHeight;
+	state.publicKey = data.publicKey;
+	utils.logSysMsg('Server->Handshake acknowledged:' + data);
+
+	// const {cipherText, sharedSecret} = await MLKemEncryption.encrypt(data.publicKey);
+	// state.bobShared = sharedSecret;
+	// console.log('Shared secret:', sharedSecret);
+	// utils.logSysMsg('bobshared:' + cipherText);
+	// socket.emit('bobshared', {cipherText: cipherText});
 });
 
-socket.on('secretmsg_ack', (data) => {
-	console.log('Message acknowledged:', data);
-	txtsysmsg.value+='Message acknowledged:' + data + '\n';
-	txtsysmsg.scrollTop = txtsysmsg.scrollHeight;
-});
-
-socket.on('file_received', (data) => {
-	console.log('File received by server:', data.fileName);
-	socket.disconnect();
-});
 
 socket.on('error', (data) => {
 	console.error('Server error:', data.message);
@@ -34,6 +29,7 @@ socket.on('error', (data) => {
 
 socket.on('disconnect', () => {
 	console.log('Disconnected from server');
+	utils.logSysMsg('Disconnected from server');
 });
 
 // Constants and DOM Elements
@@ -58,6 +54,11 @@ const state = {
 
 // Utility Functions
 const utils = {
+	logSysMsg(msg)  {
+		DOM.txtsysmsg.value+=msg+'\n';
+		DOM.txtsysmsg.scrollTop = DOM.txtsysmsg.scrollHeight;
+
+	},
 	createElement(elementType, attrs = {}) {
 		const el = document.createElement(elementType);
 		return this.appendAttr(el, attrs);
@@ -357,45 +358,73 @@ const AESEncryption = {
 	}
 }
 
+const MLKemEncryption = {
+	async encrypt(publicKey) {
+		const publicKeyBytes = Uint8Array.from(atob(publicKey), c => c.charCodeAt(0));
+        const { cipherText, sharedSecret: bobShared } = noblePostQuantum.ml_kem768.encapsulate(publicKeyBytes);
+        const cipherTextBase64 = btoa(String.fromCharCode.apply(null, new Uint8Array(cipherText)));
+		const bobSharedBase64 = btoa(String.fromCharCode.apply(null, new Uint8Array(bobShared)));
+
+        return { cipherText: cipherTextBase64, sharedSecret: bobSharedBase64 };
+    },
+}
+
 const EventHandler = {
+
+	async encapsulateHandler() {
+		const { cipherText, sharedSecret } = await MLKemEncryption.encrypt(state.publicKey);
+		state.bobShared = sharedSecret;
+		console.log('Shared secret:', sharedSecret);
+		utils.logSysMsg('Client->bobshared: ' + cipherText);
+		const response = await socket.emitWithAck('bobshared', { cipherText: cipherText });
+		if (response.status === 'success') {			
+			utils.logSysMsg('Server->bobshared: Success');
+			return true;
+		}
+		else{
+			utils.logSysMsg(`Server->bobshared: Failed. ${response.message}`);
+			return false;
+		}
+	},
 
 	// Post file to API
 	async uploadFileHandler(file) {
-		console.log('Uploading file:', file.name);
-		const secretFile = await AESEncryption.encryptFile(file, state.bobShared.rawKey);
-		console.log(secretFile);
-		//const decryptedFile = await AESEncryption.decryptFile("./decrypted/",encryptedFile.fileName, encryptedFile.encryptedData, encryptedFile.iv, state.bobShared.rawKey);
-		socket.emit('secretfile', { senderName: txtuserid.value, secretFile: secretFile });
-		// ApiService.uploadFile(file)
-		// 	.then(data => {
-		// 		console.log("File uploaded successfully!", data);
-
-		// 	})
-		// 	.catch(error => {
-		// 		console.error("Error uploading file:", error);
-		// 	});
+		if (await this.encapsulateHandler()) {
+			console.log('Uploading file:', file.name);
+			utils.logSysMsg('Client->Uploading file: ' +  file.name);		
+			const secretFile = await AESEncryption.encryptFile(file, state.bobShared);
+			console.log(secretFile);
+			
+			const response = await socket.emitWithAck('secretfile', { senderName: txtuserid.value, secretFile: secretFile });
+			utils.logSysMsg('Client->secretfile: sent:' + secretFile.encryptedData);	
+			if (response.status === 'success') {
+				utils.logSysMsg(`Server->File received acknowledged: ${data.fileName}`);
+			}
+			else{
+				utils.logSysMsg(`Server->>Uploading file failed. ${response.message}`);
+			};
+		}
 	},
 	async handshakeHanlder() {
 		//const chunkSize = 200; // Adjust based on RSA key size and padding
-		state.bobShared = await AESEncryption.generateKey();
-		console.log(state.bobShared.rawKey)
-		// // Encrypt the AES key with the public key
-		// const encrypted = await AESEncryption.encryptData("Time is endless in thy hands, my lord", state.bobShared.rawKey);
-		// const msg = {key:state.bobShared.rawKey, encrypted:encrypted.encryptedData, iv:encrypted.iv};
-		// console.log(msg);
-
-		// const decryptData = await AESEncryption.decryptData(encrypted.encryptedData, encrypted.iv, state.bobShared.rawKey);
-		// console.log(decryptData);
-		// Encrypt the message with the public key
-		const bobSharedRaw = await cryptoUtil.encryptText(state.bobShared.rawKey, state.publicKey);
-		console.log(bobSharedRaw)
-		// Step 1: Send handshake
-		socket.emit('handshake', { senderName: txtuserid.value, bonShared: bobSharedRaw });
+		socket.emit('handshake', { senderName: txtuserid.value});
+		utils.logSysMsg('Client->handshake: ' +  txtuserid.value);		
 	},
+
 	async sendMsgHandler(msg) {
-		const encrypted = await AESEncryption.encryptData(msg, state.bobShared.rawKey);
-		const secretMsg = { encryptedData: encrypted.encryptedData, iv: encrypted.iv };
-		socket.emit('secretmsg', { senderName: txtuserid.value, secretMsg: secretMsg });
+		if (await this.encapsulateHandler()){
+			const encrypted = await AESEncryption.encryptData(msg, state.bobShared);
+			const secretMsg = { encryptedData: encrypted.encryptedData, iv: encrypted.iv };
+			console.log('secretMsg:', secretMsg);
+			const response = await socket.emitWithAck('secretmsg', { senderName: txtuserid.value, secretMsg: secretMsg });
+			utils.logSysMsg('Client->Send secret message: ' + secretMsg.encryptedData);	
+			if (response.status === 'success') {
+				utils.logSysMsg(`Server->Secret message received acknowledged`);
+			}
+			else{
+				utils.logSysMsg(`Server->>Send secret message failed. ${response.message}`);
+			};
+		}
 	}
 }
 
@@ -404,22 +433,6 @@ async function initializeApp() {
 	const publicKeyText = await ApiService.getPublicKey('chooyee.co');
 	state.publicKey = await cryptoUtil.importPublicKey(publicKeyText);
 
-	// console.log('Public key encryption start========================');
-
-	// const textToEncrypt = "Hello, this is a secret message!";
-
-	// const encryptedText = await cryptoUtil.encryptText(textToEncrypt, state.publicKey);
-	// console.log("Encrypted text (base64):", encryptedText);
-	// console.log('Public key encryption end========================');
-
-	// console.log('\nAES key encryption start========================');
-	// const bob = await AESEncryption.generateKey();
-	// const result = await AESEncryption.encryptData('Time is endless in thy hands, my lord', bob.rawKey);
-	// console.log(`Encrypted: ${result.encryptedData}`);
-
-	// const decrypted = await AESEncryption.decryptData(result.encryptedData, result.iv, bob.rawKey);
-	// console.log(`Decrypted: ${decrypted}`);
-	// console.log('AES key encryption end========================');
 
 	document.getElementById('btnSubmit').addEventListener('click', (e) => {
 		e.preventDefault();

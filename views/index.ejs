@@ -87,7 +87,7 @@
                   <ul class="nav nav-tabs nav-tabs-primary" role="tablist">
                     <li class="nav-item">
                       <a class="nav-link active" data-toggle="tab" href="#link1" role="tablist">
-                        <i class="tim-icons icon-spaceship"></i> Profile
+                        <i class="tim-icons icon-spaceship"></i> PQC POC
                       </a>
                     </li>                   
                   </ul>
@@ -104,12 +104,7 @@
                             </div>
                           </div>
                           <input id="txtuserid" type="text" class="form-control" placeholder="User Id" value="chooyee.co"">
-                        </div>
-                        <div class="input-group">
-                          
-                          <input id="file" name="file" type="file" >
-                          
-                        </div>      
+                        </div>                         
                        
                         <div class="card-footer">
                           <a href="javascript:void(0)" class="btn btn-primary btn-round btn-lg" id="btnHandshake">Handshake</a>
@@ -119,11 +114,12 @@
                           <a href="javascript:void(0)" class="btn btn-primary btn-round btn-lg" id="btnSendMsg">Send Message</a>
                         </div>
                         <div class="card-footer">
-                          <a href="javascript:void(0)" class="btn btn-primary btn-round btn-lg" id="btnSubmit">Submit</a>
+                          <div class="input-group">                          
+                            <input id="file" name="file" type="file" >                          
+                          </div>    
+                          <a href="javascript:void(0)" class="btn btn-primary btn-round btn-lg" id="btnSubmit">Send File</a>
                         </div>
-                        <div class="card-footer">
-                          <textarea id="txtsysmsg" class="form-control" rows="5"></textarea>
-                        </div>
+                       
                       </form>
                     </div>                   
                   </div>
@@ -131,6 +127,9 @@
               </div>
             </div>
           </div>
+        </div>
+        <div class="container">
+          <textarea id="txtsysmsg" class="" rows="10" style="width: 100%;display: block;"></textarea>
         </div>
       </div>
       <!-- End Section Tabs -->
@@ -221,11 +220,23 @@
   <!--  Plugin for Switches, full documentation here: http://www.jque.re/plugins/version3/bootstrap.switch/ -->
   {{! <script src="./assets/js/plugins/bootstrap-switch.js"></script>
   
-  
-  <!-- Black Dashboard DEMO methods, don't include it in your project! -->
-  <script src="./assets/demo/demo.js"></script>
+
+
   <!-- Control Center for Black UI Kit: parallax effects, scripts for the example pages etc -->
   <script src="./assets/js/blk-design-system.min.js?v=1.0.0" type="text/javascript"></script>
+
+  <script src="./assets/js/noble-post-quantum.js"></script>
+  <script>
+    console.log(noblePostQuantum.ml_kem768);
+  </script>>
+  <!-- <script type="module">
+    // Import directly from a CDN
+    import { mlkem } from 'https://cdn.jsdelivr.net/npm/@noble/post-quantum@0.10.0/+esm';
+    
+    // Use the module
+    var mlkem768 = mlkem.mlkem768;
+    console.log(mlkem768);
+  </script> -->
   
   <script  src="./assets/js/main.js?v=1.1.1" type="text/javascript"></script>
  
