@@ -429,10 +429,6 @@ const EventHandler = {
 }
 
 async function initializeApp() {
-	// Get the public key
-	const publicKeyText = await ApiService.getPublicKey('chooyee.co');
-	state.publicKey = await cryptoUtil.importPublicKey(publicKeyText);
-
 
 	document.getElementById('btnSubmit').addEventListener('click', (e) => {
 		e.preventDefault();
