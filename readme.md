@@ -72,8 +72,9 @@ The client is implemented using JavaScript with WebSockets.
 
 ### Client Workflow
 1. Initiates a **handshake** with the server to obtain the public key.
-2. Generates a **shared secret** (`bobshared`) and encrypts it using ML-KEM.
-3. Sends **encrypted messages and files** using AES encryption.
+2. Encapsulate  **CipherText** and **shared secret** (`bobshared`) using ML-KEM. This is generated everytime before message or file send.
+3. Send the **CipherText** to server
+4. Encrypt message or file using AES encryption with **shared secret** (`bobshared`) as key.
 
 ### Client Code Structure
 - `assets/js/main.js`: Handles encryption and WebSocket communication.
