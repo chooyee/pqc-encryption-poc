@@ -21,4 +21,12 @@ router.get("/server", (req, res) => {
   res.render("server2");
 });
 
+router.get("/cert", (req, res) => {
+  const hostname =
+    process.env.ENVIRONMENT === "dev"
+      ? `${req.protocol}://${req.header("host")}`
+      : `${req.protocol}://${req.hostname}`;
+  res.render("cert");
+});
+
 module.exports = router;

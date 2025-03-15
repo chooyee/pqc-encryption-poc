@@ -7,6 +7,7 @@ const errorHandler = require("./middleware/errorHandler");
 const indexRoutes = require("./routes/index");
 const apiRoutes = require("./routes/api");
 const initializeSocket = require("./sockets/index");
+const {example} = require("./factory/x509Hybrid.js");
 
 const app = express();
 const server = http.createServer(app);
@@ -41,7 +42,8 @@ server.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}`);
 });
 
-
+example();
+// TestSign.example();
 
 // (async () => {
 //     const MLKemEncryption = require("./factory/mlkem.js");
