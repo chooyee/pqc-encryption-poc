@@ -7,7 +7,6 @@ const errorHandler = require("./middleware/errorHandler");
 const indexRoutes = require("./routes/index");
 const apiRoutes = require("./routes/api");
 const initializeSocket = require("./sockets/index");
-const {example} = require("./factory/x509Hybrid.js");
 
 const app = express();
 const server = http.createServer(app);
@@ -26,6 +25,9 @@ if (app.get("env") === "production") {
   // sess.cookie.secure = true;
 }
 
+require('dotenv').config()
+console.log(process.env.AZURE_CLIENT_ID)
+
 // Routes
 app.use("/", indexRoutes);
 app.use("/", apiRoutes);
@@ -42,7 +44,7 @@ server.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}`);
 });
 
-example();
+//example();
 // TestSign.example();
 
 // (async () => {

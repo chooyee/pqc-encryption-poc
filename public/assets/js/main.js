@@ -91,7 +91,7 @@ const ApiService = {
 		const formData = new FormData();
 		formData.append('file', file);
 		try {
-			const response = await fetch('/upload', {
+			const response = await fetch('upload', {
 				method: 'POST',
 				body: formData,
 			});
@@ -399,7 +399,17 @@ const EventHandler = {
 function initializeApp() {
 	DOM.btnSubmit.addEventListener('click', (e) => {
 		e.preventDefault();
-		EventHandler.uploadFileHandler(DOM.fileInput.files[0]);
+		//EventHandler.uploadFileHandler(DOM.fileInput.files[0]);
+		ApiService.uploadFile(DOM.fileInput.files[0])
+			.then((response) => {
+				console.log('File uploaded successfully:', response);
+				utils.logSysMsg('File uploaded successfully: ' + DOM.fileInput.files[0].name);
+			})
+			.catch((error) => {
+				console.error('Error uploading file:', error);
+				utils.logSysMsg('Error uploading file: ' + error.message);
+			});
+		utils.logSysMsg('Client->Upload file: ' + DOM.fileInput.files[0].name);
 	});
 
 	DOM.btnHandshake.addEventListener('click', (e) => {

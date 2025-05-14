@@ -2,6 +2,9 @@ const fs = require("fs").promises;
 const path = require("path");
 const MLKemEncryption = require("../factory/mlkem.js");
 const AESEncryption = require("../factory/aes");
+// const { DefaultAzureCredential } = require("@azure/identity");
+// const { SecretClient } = require("@azure/keyvault-secrets");
+// const { KeyClient } = require("@azure/keyvault-keys");
 
 module.exports = (io) => {
     const clients = new Map();
@@ -97,6 +100,31 @@ module.exports = (io) => {
             const { publicKey, secretKey } = await MLKemEncryption.generateKeyPair();
             console.log("Public Key:", publicKey);
             console.log("Secret Key:", secretKey);
+          
+            // Store the secretKey in Azure Key Vault
+            // try {
+            //     const vaultUrl = process.env.AZURE_KEY_VAULT_URL;  // Ensure you set this environment variable
+            //     const credential = new DefaultAzureCredential();
+            //     const secretClient = new SecretClient(vaultUrl, credential);
+                
+            //     for await (const secretProperties of secretClient.listPropertiesOfSecrets()){
+
+            //         // do something with properties
+            //         console.log(`Secret name: ${secretProperties.name}`);
+                  
+            //     }
+            //     const keyName = socket.id.replace(/[^a-zA-Z0-9\s]/g, '');
+            //     // Use a unique secret name, e.g. including the socket.id
+            //     const publicKeyName = `socket-${keyName}-publicKey`;
+            //     await secretClient.setSecret(publicKeyName, publicKey);
+
+            //     const secretName = `socket-${keyName}-secretKey`;
+            //     await secretClient.setSecret(secretName, secretKey);
+            //     console.log("SecretKey stored in Azure Key Vault under name:", secretName);
+            // } catch (err) {
+            // console.error("Failed to store secretKey in Azure Key Vault:", err);
+            // }
+
             const clientId = socket.id;
             clients.set(clientId, {
                 senderName: data.senderName,
@@ -106,7 +134,7 @@ module.exports = (io) => {
                 secretKey: secretKey,
             });
            
-            socket.emit("handshake_ack", { status: "success",publicKey: publicKey });
+            socket.emit("handshake_ack", { status: "success", publicKey: publicKey });
         });
 
         socket.on("secretmsg", async (data, callback) => {
