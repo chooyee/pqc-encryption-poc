@@ -50,6 +50,9 @@ router.post("/upload", upload.single("file"), async (req, res) => {
 	}
   	*/
 
+	//==============================================================================
+	//Encrypt uploaded file
+	//==============================================================================
 	const result = await AzureKeyFactory.EncryptFile("test", req.file.path);	
 	const encryptedFile = Buffer.from(result.encryptedFile, "base64");
 	fs.writeFileSync(req.file.path + ".dat", encryptedFile);
@@ -124,7 +127,6 @@ function GetFileSizePart(totalFileBytes)
 {
 	console.log(`total file bytes: ${totalFileBytes}`)
 	let totalBytesAlloc = 0;
-	const partData = {} 
 	const parts = [];
 	const maxPart = 10;
 	let totalPart = maxPart;
@@ -156,6 +158,32 @@ function GetFileSizePart(totalFileBytes)
 	console.log(parts);
 	return parts;
 }	
+
+function ChunkFile(encryptedFile)
+{
+	const chunks = GetFileSizePart(encryptedFile.length);
+
+	let start=0;
+	let end =0;
+	let i = 0;
+	for(chunk of chunks)
+	{		
+		end = end + chunk.bytesAlloc; 
+		console.log(`start: ${start} - end: ${ end}`)
+		const fsSlice = encryptedFile.slice(start, end);
+		start = end;
+
+		//random file name
+		const azureBlobService = new AzureBlobService({
+			accountName: process.env.AZURE_BLOB_ACCOUNTNAME,
+			containerName: process.env.AZURE_BLOB_CONTAINERNAME
+		});
+		await azureBlobService.uploadBlob(`encrypted_part_${i + 1}.dat`, fsSlice);
+		const fileName = `./download/encrypted_part_${i + 1}.dat`;
+		fs.writeFileSync(fileName, fsSlice);
+		i++;
+	}
+}
 
 module.exports = router;
 
