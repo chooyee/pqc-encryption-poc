@@ -173,12 +173,12 @@ function ChunkFile(encryptedFile)
 		const fsSlice = encryptedFile.slice(start, end);
 		start = end;
 
-		//random file name
-		const azureBlobService = new AzureBlobService({
-			accountName: process.env.AZURE_BLOB_ACCOUNTNAME,
-			containerName: process.env.AZURE_BLOB_CONTAINERNAME
-		});
-		await azureBlobService.uploadBlob(`encrypted_part_${i + 1}.dat`, fsSlice);
+		// //random file name
+		// const azureBlobService = new AzureBlobService({
+		// 	accountName: process.env.AZURE_BLOB_ACCOUNTNAME,
+		// 	containerName: process.env.AZURE_BLOB_CONTAINERNAME
+		// });
+		// await azureBlobService.uploadBlob(`encrypted_part_${i + 1}.dat`, fsSlice);
 		const fileName = `./download/encrypted_part_${i + 1}.dat`;
 		fs.writeFileSync(fileName, fsSlice);
 		i++;
