@@ -1,7 +1,7 @@
 const { BlobServiceClient } = require('@azure/storage-blob');
 const { DefaultAzureCredential } = require('@azure/identity');
 
-class AzureBlobService {
+class AzureBlobFactory{
     constructor(options = {}) {
         console.log(options)
         if (!options.accountName) throw new Error('Azure storage account name is required');
@@ -32,10 +32,16 @@ class AzureBlobService {
 
     // 📝 Upload or overwrite blob
     async uploadBlob(blobName, content) {
-        const blockBlobClient = this.containerClient.getBlockBlobClient(blobName);
-        const buffer = Buffer.isBuffer(content) ? content : Buffer.from(content);
-        await blockBlobClient.upload(buffer, buffer.length);
-        console.log(`Blob "${blobName}" uploaded.`);
+        try{
+            const blockBlobClient = this.containerClient.getBlockBlobClient(blobName);
+            const buffer = Buffer.isBuffer(content) ? content : Buffer.from(content);
+            await blockBlobClient.upload(buffer, buffer.length);
+            console.log(`Blob "${blobName}" uploaded.`);
+        }
+        catch(error)
+        {
+            throw new Error(`UploadBlob Failed: ${error}`);
+        }
     }
 
     async listBlobs() {
@@ -46,7 +52,7 @@ class AzureBlobService {
         console.log(`Container contains: ${blobs.join(', ')}`);
         return blobs;
     }
-    
+
     // 📖 Read blob content
     async readBlob(blobName) {
         const blockBlobClient = this.containerClient.getBlockBlobClient(blobName);
@@ -84,4 +90,4 @@ class AzureBlobService {
     }
 }
 
-module.exports = AzureBlobService;
+module.exports = AzureBlobFactory;

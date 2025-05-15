@@ -76,7 +76,7 @@ const AzureKeyFactory = {
     },
 
 
-    async EncryptFile(keyName, filePath) {
+    async EncryptFile(keyName, fileBuffer) {
         const vaultUrl = process.env.AZURE_KEY_VAULT_URL;
         if (!vaultUrl) throw new Error("AZURE_KEY_VAULT_URL is not set");
 
@@ -85,9 +85,6 @@ const AzureKeyFactory = {
             const keyClient = new KeyClient(vaultUrl, new DefaultAzureCredential());
             const key = await keyClient.getKey(keyName);
             const cryptoClient = new CryptographyClient(key, new DefaultAzureCredential());
-
-            // Read the file (pdf or image) into a Buffer
-            const fileBuffer = await fs.readFile(filePath);
 
             // Envelope encryption:
             // 1. Generate a random symmetric key and initialization vector (iv)
